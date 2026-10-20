@@ -1,0 +1,124 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function appointmentCreateFieldsAreValid() {
+      return request.resource.data.keys().hasOnly([
+          'patientName',
+          'phone',
+          'email',
+          'date',
+          'slotId',
+          'startTime',
+          'endTime',
+          'durationMinutes',
+          'consultationClient',
+          'message',
+          'status',
+          'reviewStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.patientName is string
+        && request.resource.data.patientName.size() >= 2
+        && request.resource.data.patientName.size() <= 120
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() >= 8
+        && request.resource.data.phone.size() <= 20
+        && request.resource.data.status == 'requested'
+        && request.resource.data.reviewStatus == 'not_requested'
+        && request.resource.data.durationMinutes == 30
+        && request.resource.data.consultationClient == 'WhatsApp';
+    }
+
+    function appointmentUpdateFieldsAreValid() {
+      let data = request.resource.data;
+      let validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+      let validReviewStatuses = ['not_requested', 'requested', 'submitted', 'approved', 'rejected'];
+      
+      return (!data.keys().hasAny(['status']) || data.status in validStatuses)
+        && (!data.keys().hasAny(['reviewStatus']) || data.reviewStatus in validReviewStatuses)
+        && data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewStatus', 'completedAt', 'updatedAt', 'reviewStatusUpdatedAt']);
+    }
+
+    function reviewCreateFieldsAreValid() {
+      return request.resource.data.keys().hasOnly([
+          'consultationId',
+          'patientName',
+          'rating',
+          'feedback',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.consultationId is string
+        && request.resource.data.consultationId.size() > 0
+        && request.resource.data.patientName is string
+        && request.resource.data.patientName.size() >= 2
+        && request.resource.data.patientName.size() <= 120
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.feedback is string
+        && request.resource.data.feedback.size() >= 10
+        && request.resource.data.feedback.size() <= 1000
+        && request.resource.data.status == 'pending';
+    }
+
+    match /appointments/{appointmentId} {
+      allow create: if appointmentCreateFieldsAreValid();
+      allow read: if isAdmin();
+      allow update: if (isAdmin() && appointmentUpdateFieldsAreValid())
+        || (!isSignedIn()
+          && request.resource.data.reviewStatus == 'submitted'
+          && resource.data.status == 'completed'
+          && resource.data.reviewStatus == 'requested'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reviewStatus', 'reviewStatusUpdatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow create: if reviewCreateFieldsAreValid()
+        && reviewId == request.resource.data.consultationId
+        && !exists(/databases/$(database)/documents/reviews/$(reviewId))
+        && exists(/databases/$(database)/documents/reviewRequests/$(request.resource.data.consultationId))
+        && get(/databases/$(database)/documents/reviewRequests/$(request.resource.data.consultationId)).data.status == 'requested'
+        && get(/databases/$(database)/documents/appointments/$(request.resource.data.consultationId)).data.status == 'completed';
+      allow read: if isAdmin() || resource.data.status == 'approved';
+      allow update, delete: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /reviewRequests/{consultationId} {
+      allow create: if request.resource.data.keys().hasOnly(['appointmentId', 'patientName', 'status', 'createdAt', 'updatedAt'])
+        && consultationId == request.resource.data.appointmentId
+        && request.resource.data.appointmentId is string
+        && request.resource.data.patientName is string
+        && (request.resource.data.status == 'active' || (request.resource.data.status == 'requested' && isAdmin()));
+      allow read: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /consultationSlots/{slotId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['appointmentId', 'date', 'slotId', 'createdAt'])
+        && request.resource.data.appointmentId is string
+        && request.resource.data.date is string
+        && request.resource.data.slotId is string;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

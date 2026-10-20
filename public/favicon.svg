@@ -1,0 +1,5 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-label="Dr G Raja monogram" role="img">
+  <rect width="64" height="64" rx="16" fill="#3A1C2A"/>
+  <circle cx="32" cy="32" r="26.5" fill="#4C2437" opacity="0.92"/>
+  <text x="50%" y="54%" text-anchor="middle" fill="#F8F4EF" font-size="25" font-weight="700" font-family="Georgia, 'Times New Roman', serif" letter-spacing="-1.2">GR</text>
+</svg>
