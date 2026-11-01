@@ -6,24 +6,29 @@ const initialForm = {
   phone: '',
   email: '',
   date: '',
-  slotId: '',
+  preferredTime: '',
   message: '',
 }
 
 function todayDateValue() {
-  return new Date().toISOString().split('T')[0]
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  return `${values.year}-${values.month}-${values.day}`
 }
 
-const consultationSlots = [
-  ['17:00', '17:30'],
-  ['17:30', '18:00'],
-  ['18:00', '18:30'],
-  ['18:30', '19:00'],
-  ['19:00', '19:30'],
-  ['19:30', '20:00'],
-  ['20:00', '20:30'],
-  ['20:30', '21:00'],
-]
+function currentIstTimeValue() {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date())
+}
 
 function validateForm(form) {
   const name = form.patientName.trim()
@@ -57,18 +62,12 @@ function validateForm(form) {
     errors.preferredDate = 'Please choose today or a future date.'
   }
 
-  if (!form.slotId) {
-    errors.preferredTime = 'Please choose an available 30-minute slot.'
-  } else if (form.date === todayDateValue()) {
-    const selectedSlot = consultationSlots.find(([start]) => start === form.slotId)
-    if (selectedSlot) {
-      const now = new Date()
-      const selected = new Date(`${form.date}T${selectedSlot[0]}`)
-
-      if (selected <= now) {
-        errors.preferredTime = 'Please choose a future time.'
-      }
-    }
+  if (!form.preferredTime) {
+    errors.preferredTime = 'Please choose a preferred consultation time.'
+  } else if (form.preferredTime < '17:00' || form.preferredTime > '21:00') {
+    errors.preferredTime = 'Choose a time between 5:00 PM and 9:00 PM IST.'
+  } else if (form.date === todayDateValue() && form.preferredTime <= currentIstTimeValue()) {
+    errors.preferredTime = 'Please choose a future time in IST.'
   }
 
   return errors
@@ -179,11 +178,18 @@ export default function AppointmentForm() {
           {fieldErrors.preferredDate ? <span className="field-error">{fieldErrors.preferredDate}</span> : null}
         </label>
         <label>
-          Available time slot *
-          <select name="slotId" value={form.slotId} onChange={updateField} required aria-invalid={Boolean(fieldErrors.preferredTime)}>
-            <option value="">Select a 30-minute slot</option>
-            {consultationSlots.map(([start, end]) => <option key={start} value={start}>{start} - {end}</option>)}
-          </select>
+          Preferred Consultation Time *
+          <input
+            name="preferredTime"
+            value={form.preferredTime}
+            onChange={updateField}
+            type="time"
+            min="17:00"
+            max="21:00"
+            step="60"
+            required
+            aria-invalid={Boolean(fieldErrors.preferredTime)}
+          />
           {fieldErrors.preferredTime ? <span className="field-error">{fieldErrors.preferredTime}</span> : null}
         </label>
       </div>
@@ -209,6 +215,9 @@ export default function AppointmentForm() {
         {status === 'loading' ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
         Request Appointment
       </button>
+      <p className="form-time-guidance">
+        Consultation hours: 5:00 PM–9:00 PM IST. Your preferred time is a request and is subject to clinic confirmation.
+      </p>
     </form>
   )
 }

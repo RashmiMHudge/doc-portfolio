@@ -1,9 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import {
   Award,
   BookOpen,
-  CalendarCheck,
   HeartPulse,
   Mail,
   Microscope,
@@ -56,7 +55,6 @@ const navItems = [
   ['Health Education', '#health-education'],
   ['Skills', '#skills'],
   ['Area of Expertise', '#area-of-expertise'],
-  ['Care', '#care'],
   ['Reviews', '#reviews'],
   ['Contact', '#contact'],
 ]
@@ -82,10 +80,37 @@ function InstagramMark({ size = 18 }) {
 }
 
 const stats = [
-  ['12+', 'Years clinical experience'],
-  ['4+', 'Years oncology focus'],
-  ['AIR 80', 'Super speciality rank'],
-  ['7+', 'Research publications'],
+  {
+    number: '4',
+    title: 'Academic Distinctions',
+    description: 'Conference presentations and oncology quiz awards.',
+  },
+  {
+    number: '2',
+    title: 'Published Works',
+    description: 'Journal publications and a clinical case report.',
+  },
+  {
+    number: '2',
+    title: 'Research Manuscripts',
+    description: 'Research work currently under review.',
+  },
+  {
+    number: '2',
+    title: 'Professional Memberships',
+    description: 'FOGSI and AGOI life memberships.',
+  },
+]
+
+const marqueeTopics = [
+  'Gynecologic Oncology',
+  'Surgical Expertise',
+  'Evidence-Based Practice',
+  'Cancer Awareness',
+  'Early Detection',
+  'Patient Dignity',
+  'Multidisciplinary Care',
+  'Research & Learning',
 ]
 
 const educationTopics = [
@@ -266,11 +291,11 @@ const skillGroups = [
     icon: Scissors,
     items: [
       'Cytoreductive surgery for ovarian cancer',
-      'Advanced laparoscopic surgery for ovarian cancer',
+      'HIPEC (Hyperthermic Intraperitoneal Chemotherapy)',
       'Radical hysterectomy for cervical cancer',
-      'Advanced laparoscopic surgery for endometrial cancer',
-      'Vulval cancer surgery',
-      'Laparoscopic sentinel lymph node biopsy',
+      'Laparoscopic surgery for endometrial cancer',
+      'Pelvic and para-aortic lymph node dissection',
+      'Sentinel lymph node biopsy',
     ],
   },
   {
@@ -278,16 +303,25 @@ const skillGroups = [
     title: 'Minimally Invasive Gynecology',
     icon: Microscope,
     items: [
-      'Laparoscopic surgery for uterine fibroids',
-      'Laparoscopic surgery for adenomyosis',
-      'Laparoscopic surgery for endometriosis',
+      'Laparoscopic hysterectomy for fibroids',
+      'Laparoscopic hysterectomy for endometriosis',
+      'Laparoscopic hysterectomy for adenomyosis',
+      'Laparoscopic cystectomy for ovarian cysts and dermoid cysts',
+      'Diagnostic laparoscopy',
     ],
   },
   {
     number: '03',
     title: 'Preventive & Diagnostic Care',
     icon: ShieldCheck,
-    items: ['Pap smear', 'Colposcopy', 'HPV vaccination'],
+    items: [
+      'Cervical cancer screening',
+      'Colposcopy',
+      'HPV vaccination',
+      'Cervical conization',
+      'LEEP / LLETZ procedures',
+      'Diagnostic hysteroscopy',
+    ],
   },
 ]
 
@@ -295,7 +329,7 @@ const expertiseCategories = [
   {
     number: '01',
     title: 'Gynecologic Oncology',
-    description: 'Specialized care for gynecologic cancers.',
+    description: 'Understanding gynecological cancers, their warning signs and the importance of timely evaluation.',
     items: [
       {
         name: 'Ovarian Cancer',
@@ -356,7 +390,7 @@ const expertiseCategories = [
   {
     number: '02',
     title: 'General Gynecology',
-    description: 'Diagnosis and treatment of common benign gynecologic conditions.',
+    description: 'Information about common gynecological conditions, their symptoms and available care.',
     items: [
       {
         name: 'Uterine Fibroids',
@@ -417,7 +451,7 @@ const expertiseCategories = [
   {
     number: '03',
     title: 'Preventive Oncology',
-    description: 'Prevention, screening, and early detection.',
+    description: 'Exploring screening, prevention and early detection of gynecological cancers.',
     items: [
       {
         name: 'Cervical Cancer Screening',
@@ -451,10 +485,22 @@ const expertiseCategories = [
 ]
 
 const faqs = [
-  ['Do I need a referral?', 'No. You can request a consultation directly, and the clinic team will guide you.'],
-  ['Can I book a second opinion?', 'Yes. Please bring prior scans, biopsy reports, discharge summaries, and prescriptions.'],
-  ['Is the form for medical emergencies?', 'No. For urgent symptoms or emergencies, call the hospital or emergency services.'],
-  ['Will my details be private?', 'The enquiry collects only basic contact details needed for scheduling.'],
+  [
+    'What conditions does Dr. G Raja specialise in?',
+    'Dr. G Raja specialises in gynaecological oncology, including ovarian, cervical, endometrial, vaginal and vulval cancers. His clinical practice also includes general gynaecology and preventive care.',
+  ],
+  [
+    'How can I book an appointment?',
+    'You can use the Book an Appointment option on this website to submit an enquiry. The clinic team will guide you through the appointment process and provide the necessary details.',
+  ],
+  [
+    'Can I consult Dr. Raja for a second opinion?',
+    'Yes. You can seek a specialist opinion regarding your diagnosis or proposed treatment plan. Please show the relevant medical records, scan reports, biopsy results, discharge summaries and prescriptions to help with the assessment.',
+  ],
+  [
+    'Can I use the consultation service for medical emergencies?',
+    'No. Online enquiries and consultation requests are not intended for emergencies. If you experience severe pain, heavy bleeding, fainting or other urgent symptoms, seek immediate medical attention at the nearest hospital or emergency department.',
+  ],
 ]
 
 const getWhatsAppUrl = (phone, name) =>
@@ -583,7 +629,7 @@ function ExpertiseModal({ isOpen, onClose, condition, onBook }) {
               onBook?.()
             }}
           >
-            Book an Consultation
+            Book a Consultation
           </button>
         </div>
       </section>
@@ -801,23 +847,22 @@ function Home() {
       <main>
         <section className="hero-section">
           <div className="hero-copy">
-            <p className="eyebrow">{doctor.title}</p>
+            <p className="eyebrow">GYNECOLOGICAL ONCOLOGIST</p>
             <h1 className="hero-title">
-              <span>Precision in care,</span>
-              <span>kindness in</span>
-              <span className="hero-title-accent">every conversation.</span>
+              <span>Dedicated to women&apos;s health.</span>
+              <span className="hero-title-accent">Committed to cancer care.</span>
             </h1>
             <p className="hero-summary">
-              Specialist gynecologic oncology consultations designed around you — helping you understand complex diagnoses, navigate treatment decisions, and move forward with clarity and confidence.
+              Dr. G Raja is a Gynecological Oncologist specializing in the management of gynecological cancers and complex women&apos;s health conditions. Combining evidence-based medicine, surgical expertise, and a patient-centred approach, he is committed to preserving dignity, supporting informed decisions, and improving quality of life.
             </p>
             <div className="hero-actions">
-              <button className="primary-button" type="button" onClick={() => setIsConsultationOpen(true)}>
-                <CalendarCheck size={20} />
-                Book a Consultation
-              </button>
-              <a className="secondary-button" href={`tel:${doctor.phone}`}>
-                <Phone size={19} />
-                Call {doctor.displayPhone}
+              <a className="primary-button" href="#area-of-expertise">
+                <Sparkles size={20} />
+                Explore Expertise
+              </a>
+              <a className="secondary-button" href="#skills">
+                <Microscope size={19} />
+                Explore Skills
               </a>
             </div>
           </div>
@@ -827,47 +872,27 @@ function Home() {
               src="/images/Drgraja2.jpeg"
               alt="Doctor in a consultation room"
             />
-            <div className="hero-badge">
-              <span className="hero-badge-value">12+</span>
-              <span className="hero-badge-copy">Years of clinical experience</span>
-            </div>
           </div>
         </section>
 
         <section className="stats-band" aria-label="Professional highlights">
-          {stats.map(([value, label]) => (
-            <div key={label}>
-              <strong>{value}</strong>
-              <span>{label}</span>
+          {stats.map(({ number, title, description }) => (
+            <div key={title}>
+              <strong>{number}</strong>
+              <span>{title}</span>
+              <p>{description}</p>
             </div>
           ))}
         </section>
 
         <div className="values-marquee" aria-hidden="true">
           <div className="marquee-track">
-            <span>Clarity</span>
-            <span className="marquee-separator">✦</span>
-            <span>Personalized Care</span>
-            <span className="marquee-separator">✦</span>
-            <span>Expert Guidance</span>
-            <span className="marquee-separator">✦</span>
-            <span>Informed Decisions</span>
-            <span className="marquee-separator">✦</span>
-            <span>Trusted Support</span>
-            <span className="marquee-separator">✦</span>
-            <span>Women's Wellbeing</span>
-            <span className="marquee-separator">✦</span>
-            <span>Clarity</span>
-            <span className="marquee-separator">✦</span>
-            <span>Personalized Care</span>
-            <span className="marquee-separator">✦</span>
-            <span>Expert Guidance</span>
-            <span className="marquee-separator">✦</span>
-            <span>Informed Decisions</span>
-            <span className="marquee-separator">✦</span>
-            <span>Trusted Support</span>
-            <span className="marquee-separator">✦</span>
-            <span>Women's Wellbeing</span>
+            {[0, 1].map((repeat) => marqueeTopics.map((topic) => (
+              <Fragment key={`${repeat}-${topic}`}>
+                <span>{topic}</span>
+                <span className="marquee-separator">✦</span>
+              </Fragment>
+            )))}
           </div>
         </div>
 
@@ -884,56 +909,58 @@ function Home() {
               <span className="quote-diamond">◆</span>
               <p>
                 A thoughtful approach<br />
-                to every consultation.
+                to every patient.
               </p>
               <ul>
                 <li>Clear explanations.</li>
                 <li>Individualized guidance.</li>
-                <li>Evidence-led decisions.</li>
+                <li>Evidence-based decisions.</li>
               </ul>
-              <div className="about-signature">-- Dr. G Raja</div>
+              <div className="about-signature">— Dr. G Raja</div>
             </div>
           </div>
 
           <div className="about-content">
             <p className="about-lead">
-              Dr. G Raja is a Gynecological Oncologist specializing in the diagnosis and treatment of
-              gynecological cancers and complex gynecological conditions. He completed his MBBS and MD
-              in Obstetrics and Gynaecology from AIIMS Bhubaneswar, followed by DNB in Obstetrics and
-              Gynaecology and DrNB in Gynecological Oncology from Tata Medical Centre, Kolkata.
+              Dr. G Raja is a Gynecological Oncologist dedicated to the diagnosis and management of gynecological cancers and complex women&apos;s health conditions. His qualifications include MBBS, MD (Obstetrics and Gynaecology), DNB (Obstetrics and Gynaecology), and DrNB in Gynecological Oncology.
             </p>
             <p>
-              He is a Fellow of Minimal Access Surgery (FMAS), and his approach to care combines specialist
-              expertise with clear communication and individualized treatment planning. Through each online
-              consultation, he takes time to understand the patient&apos;s concerns, explain the diagnosis and
-              available treatment options, and provide evidence-based guidance for the next step in care.
+              He completed his MBBS at Belagavi Institute of Medical Sciences, Belagavi, followed by specialist training in Obstetrics and Gynaecology at AIIMS Bhubaneswar and super-specialty training in Gynecological Oncology at Tata Medical Centre, Kolkata. He also holds a Fellowship in Minimal Access Surgery (FMAS).
             </p>
             <p>
-              Alongside gynecologic oncology, his practice includes general gynecology and preventive
-              oncology, with a focus on early detection, cervical cancer screening, colposcopy, and HPV vaccination.
+              His clinical interests include the management of ovarian, cervical and endometrial cancers, as well as other gynecological conditions. He believes in clear communication, evidence-based treatment planning and helping patients make informed decisions throughout their care journey.
             </p>
 
             <div className="about-badges">
               <div className="badge-card">
                 <Award size={20} />
-                <span>M.Ch. Gynecologic Oncology, AIMS Kochi</span>
+                <span>MBBS</span>
               </div>
               <div className="badge-card">
                 <Award size={20} />
-                <span>ESGO - FMAS - IAPC Certified</span>
+                <span>MD (OBG)</span>
               </div>
               <div className="badge-card">
                 <Award size={20} />
-                <span>AIRO 80 - NEET-SS Super Speciality</span>
+                <span>DNB (OBG)</span>
+              </div>
+              <div className="badge-card">
+                <Award size={20} />
+                <span>DrNB (Gynae Onco)</span>
+              </div>
+              <div className="badge-card">
+                <Award size={20} />
+                <span>FMAS</span>
               </div>
             </div>
 
             <div className="training-block">
-              <p className="training-label">Training &amp; Fellowships</p>
+              <p className="training-label">Education &amp; Specialist Training</p>
               <ul className="training-list">
-                <li>Amrita Institute of Medical Sciences (AIMS), Kochi - M.Ch. Gynecologic Oncology</li>
-                <li>Tata Memorial Hospital, Mumbai - Clinical observership in complex oncology surgery</li>
-                <li>Tata Medical Center, Kolkata - Contemporary evidence-based treatment strategies</li>
+                <li>Belagavi Institute of Medical Sciences, Belagavi – MBBS.</li>
+                <li>AIIMS Bhubaneswar – Specialist training in Obstetrics and Gynaecology.</li>
+                <li>Tata Medical Centre, Kolkata – Super-specialty training in Gynecological Oncology.</li>
+                <li>Fellowship in Minimal Access Surgery (FMAS).</li>
               </ul>
             </div>
           </div>
@@ -988,7 +1015,7 @@ function Home() {
           <div className="skills-header">
             <p className="eyebrow">CLINICAL SKILLS</p>
             <h2>Specialized care,<br />precise expertise.</h2>
-            <p className="skills-subtitle">A focused approach to gynecologic oncology, minimally invasive surgery, and preventive care.</p>
+            <p className="skills-subtitle">A range of surgical and clinical skills in gynecological oncology, minimally invasive surgery, and preventive women&apos;s healthcare.</p>
           </div>
 
           <div className="skills-content">
@@ -1021,9 +1048,9 @@ function Home() {
         <section className="section expertise-explorer" id="area-of-expertise">
           <div className="expertise-header">
             <p className="eyebrow">AREAS OF EXPERTISE</p>
-            <h2>Expertise across<br />gynecologic care.</h2>
+            <h2>Understanding conditions.<br /><em>Guiding women&apos;s care.</em></h2>
             <p className="expertise-subtitle">
-              Explore gynecologic cancers, common gynecologic conditions, and preventive care to understand your concerns and when specialist guidance may be helpful.
+              Explore gynecological cancers, common women&apos;s health conditions and preventive care. Learn about symptoms, possible risk factors and when specialist evaluation may be helpful.
             </p>
           </div>
 
@@ -1057,6 +1084,7 @@ function Home() {
 
         <section className="section philosophy-section" id="care">
           <div className="quote-panel">
+            <p className="eyebrow">OUR APPROACH TO CARE</p>
             <Sparkles size={26} />
             <blockquote>
               Care begins with listening, then moves with clarity, expertise, and compassion.
@@ -1064,10 +1092,10 @@ function Home() {
           </div>
           <div className="care-grid">
             {[
-              ['01', 'Listening first', 'Every consultation begins by understanding your concerns, questions, medical history, and what matters most to you.'],
-              ['02', 'Clarity in every decision', 'Complex diagnoses and treatment options are explained clearly, so you can make informed choices with confidence.'],
-              ['03', 'Expertise grounded in evidence', 'Recommendations are guided by current medical evidence, specialist expertise, and the individual needs of each patient..'],
-              ['04', 'Care beyond the diagnosis', 'Treatment is only one part of the journey. Recovery, quality of life, prevention, and long-term wellbeing matter too.'],
+              ['01', 'Listening first', 'Every consultation begins with understanding your concerns, questions, medical history, and what matters most to you.'],
+              ['02', 'Clarity in every decision', 'Complex diagnoses and treatment options are explained clearly, helping you make informed decisions with confidence.'],
+              ['03', 'Expertise grounded in evidence', 'Recommendations are guided by current medical evidence, specialist expertise, and each patient’s individual needs.'],
+              ['04', 'Care beyond the diagnosis', 'Treatment is only one part of the journey. Recovery, quality of life, prevention, and long-term well-being matter too.'],
             ].map(([number, title, body]) => (
               <article key={title}>
                 <span>{number}</span>
@@ -1078,12 +1106,13 @@ function Home() {
           </div>
         </section>
 
-        <section className="section" id="reviews">
+        <section className="section reviews-section" id="reviews">
           <div className="section-heading">
-            <p className="eyebrow">Patient Voices</p>
+            <p className="eyebrow">PATIENT VOICES</p>
             <h2>Care that feels clear, human, and steady.</h2>
+            <p>Every patient&apos;s experience is unique. We value the trust patients place in us and the feedback they share about their care.</p>
           </div>
-          <div className="testimonial-grid">
+          <div className={`testimonial-grid${reviews.length === 1 ? ' testimonial-grid-single' : ''}`}>
             {reviews.length > 0 ? reviews.map((review) => {
               const displayName = review.patientName || 'Anonymous patient'
               const displayText = review.feedback || review.reviewText
@@ -1102,7 +1131,9 @@ function Home() {
                   </div>
                   <p>{displayText}</p>
                   <strong>{displayName}</strong>
-                  <span>Verified consultation</span>
+                  {review.status === 'approved' && review.consultationId && (
+                    <span>Verified consultation</span>
+                  )}
                 </article>
               )
             }) : <p className="reviews-empty">Patient reviews will appear here after approval.</p>}
@@ -1111,8 +1142,9 @@ function Home() {
 
         <section className="section faq-section">
           <div className="section-heading">
-            <p className="eyebrow">FAQ</p>
-            <h2>Common consultation questions.</h2>
+            <p className="eyebrow">PATIENT INFORMATION</p>
+            <h2>Questions before your visit?</h2>
+            <p>Find helpful answers to common questions about specialist care, appointments and consultations.</p>
           </div>
           <div className="faq-list">
             {faqs.map(([question, answer]) => (

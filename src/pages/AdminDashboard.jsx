@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { signOut } from 'firebase/auth'
+import { EmailAuthProvider, reauthenticateWithCredential, signOut, updatePassword } from 'firebase/auth'
 import { collection, deleteDoc, getDocs } from 'firebase/firestore'
-import { CalendarDays, LogOut, RefreshCw, Star, MessageCircle, Mail, Phone } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Download, KeyRound, LayoutDashboard, LogOut, Menu, MessageCircle, RefreshCw, Star, Trash2, UsersRound, X, Mail, Phone } from 'lucide-react'
 import { auth, db } from '../firebase/config.js'
 import { getAppointments, updateAppointmentStatus } from '../services/appointmentService.js'
 import { getReviews, updateReviewStatus } from '../services/reviewService.js'
@@ -9,13 +9,6 @@ import { generateConsultationEmailBody, generateConsultationWhatsAppLink, genera
 import { updateConsultationReviewStatus } from '../services/consultationService.js'
 
 const statuses = ['requested', 'confirmed', 'completed', 'cancelled']
-
-function getEndTime(startTime = '') {
-  const [hours, minutes] = startTime.split(':').map(Number)
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return ''
-  const endMinutes = hours * 60 + minutes + 30
-  return `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`
-}
 
 function getReviewStatusLabel(status) {
   const labels = {
@@ -72,9 +65,48 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const [reviewError, setReviewError] = useState('')
   const [archiveStatus, setArchiveStatus] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deletingData, setDeletingData] = useState(false)
+  const [exportingData, setExportingData] = useState(false)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
+  const [passwordStatus, setPasswordStatus] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const sidebarRef = useRef(null)
+
+  useEffect(() => {
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setSidebarOpen(false)
+        setDeleteDialogOpen(false)
+        setPasswordDialogOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!sidebarOpen && !passwordDialogOpen && !deleteDialogOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    if (sidebarOpen) sidebarRef.current?.querySelector('button')?.focus()
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [sidebarOpen, passwordDialogOpen, deleteDialogOpen])
 
   async function exportAllData() {
     try {
+      setExportingData(true)
       setArchiveStatus('Preparing exports...')
       const [appointmentRows, reviewRows] = await Promise.all([
         getAllCollectionData('appointments'),
@@ -86,20 +118,25 @@ export default function AdminDashboard() {
       setArchiveStatus(`Exported ${appointmentRows.length} appointments and ${reviewRows.length} reviews.`)
     } catch (err) {
       setArchiveStatus(err.message || 'Unable to export data.')
+    } finally {
+      setExportingData(false)
     }
   }
 
   async function deleteAllData() {
-    const confirmed = window.confirm('Export the data first. Permanently delete all appointments, reviews, review requests, and reserved slots? This cannot be undone.')
-    if (!confirmed) return
     try {
+      setDeletingData(true)
       setArchiveStatus('Deleting archived data...')
       const counts = await Promise.all(['appointments', 'reviews', 'reviewRequests', 'consultationSlots'].map(deleteCollectionData))
       setAppointments([])
       setReviews([])
       setArchiveStatus(`Deleted ${counts.reduce((total, count) => total + count, 0)} records.`)
+      setDeleteDialogOpen(false)
+      setDeleteConfirmation('')
     } catch (err) {
       setArchiveStatus(err.message || 'Unable to delete data.')
+    } finally {
+      setDeletingData(false)
     }
   }
 
@@ -188,6 +225,54 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handlePasswordChange(event) {
+    event.preventDefault()
+    setPasswordError('')
+    setPasswordStatus('')
+
+    if (passwordForm.next.length < 6) {
+      setPasswordError('Your new password must be at least 6 characters.')
+      return
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordError('The new passwords do not match.')
+      return
+    }
+
+    const user = auth?.currentUser
+    if (!user?.email) {
+      setPasswordError('Unable to identify the signed-in account. Please sign in again.')
+      return
+    }
+
+    try {
+      setPasswordSaving(true)
+      const credential = EmailAuthProvider.credential(user.email, passwordForm.current)
+      await reauthenticateWithCredential(user, credential)
+      await updatePassword(user, passwordForm.next)
+      setPasswordForm({ current: '', next: '', confirm: '' })
+      setPasswordStatus('Password updated successfully.')
+    } catch (err) {
+      setPasswordError(
+        err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+          ? 'The current password is incorrect.'
+          : err.code === 'auth/weak-password'
+            ? 'Choose a stronger password with at least 6 characters.'
+            : err.message || 'Unable to update the password. Please try again.',
+      )
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await signOut(auth)
+    } catch (err) {
+      setError(err.message || 'Unable to sign out. Please try again.')
+    }
+  }
+
   // oxlint-disable-next-line react(set-state-in-effect)
   useEffect(() => {
     // oxlint-disable-next-line react(set-state-in-effect)
@@ -202,25 +287,186 @@ export default function AdminDashboard() {
   ])
 
   return (
-    <main className="admin-page">
+    <main className="admin-page" id="admin-overview">
       <header className="admin-header">
         <div>
           <p className="eyebrow">Clinic Admin</p>
           <h1>Admin Dashboard</h1>
         </div>
-        <div className="admin-actions">
-          <button className="secondary-button" type="button" onClick={() => loadAppointments()}>
-            <RefreshCw size={18} />
-            Refresh
+        <div className="admin-account-menu">
+          <button
+            className="admin-menu-toggle"
+            type="button"
+            aria-label={sidebarOpen ? 'Close admin sidebar' : 'Open admin sidebar'}
+            aria-expanded={sidebarOpen}
+            aria-controls="admin-sidebar"
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            {sidebarOpen ? <X size={21} /> : <Menu size={22} />}
           </button>
-          <button className="ghost-button" type="button" onClick={() => signOut(auth)}>
-            <LogOut size={18} />
-            Logout
-          </button>
+          {sidebarOpen ? (
+            <div
+              className="admin-sidebar-backdrop"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setSidebarOpen(false)
+              }}
+            >
+              <aside className="admin-sidebar" id="admin-sidebar" ref={sidebarRef} aria-label="Admin sidebar">
+                <div className="admin-sidebar-heading">
+                  <div className="admin-menu-profile">
+                    <span className="admin-avatar">{auth?.currentUser?.email?.[0]?.toUpperCase() || 'A'}</span>
+                    <div>
+                      <strong>Clinic administrator</strong>
+                      <span>{auth?.currentUser?.email || 'Signed-in account'}</span>
+                    </div>
+                  </div>
+                  <button className="admin-dialog-close" type="button" aria-label="Close admin sidebar" onClick={() => setSidebarOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <nav className="admin-sidebar-nav" aria-label="Dashboard sections">
+                  <span className="admin-sidebar-label">Workspace</span>
+                  <button type="button" onClick={() => { setSidebarOpen(false); document.getElementById('admin-overview')?.scrollIntoView({ behavior: 'smooth' }) }}>
+                    <LayoutDashboard size={18} /> Overview
+                  </button>
+                  <button type="button" onClick={() => { setSidebarOpen(false); document.getElementById('admin-appointments')?.scrollIntoView({ behavior: 'smooth' }) }}>
+                    <CalendarDays size={18} /> Appointments
+                  </button>
+                  <button type="button" onClick={() => { setSidebarOpen(false); document.getElementById('admin-reviews')?.scrollIntoView({ behavior: 'smooth' }) }}>
+                    <UsersRound size={18} /> Patient reviews
+                  </button>
+                  <button type="button" onClick={() => { setSidebarOpen(false); loadAppointments(); loadReviews() }}>
+                    <RefreshCw size={18} /> Refresh dashboard data
+                  </button>
+                </nav>
+
+                <div className="admin-sidebar-nav">
+                  <span className="admin-sidebar-label">Data management</span>
+                  <button type="button" onClick={exportAllData} disabled={exportingData}>
+                    <Download size={18} /> {exportingData ? 'Preparing export…' : 'Export clinic data'}
+                  </button>
+                  <p className="admin-sidebar-hint">Download appointments and reviews as separate CSV files.</p>
+                  <div className="admin-sidebar-danger">
+                    <strong>Danger zone</strong>
+                    <p>Permanently remove clinic records. This action cannot be undone.</p>
+                    <button className="admin-sidebar-delete" type="button" onClick={() => { setDeleteConfirmation(''); setDeleteDialogOpen(true) }}>
+                      <Trash2 size={17} /> Delete clinic data
+                    </button>
+                  </div>
+                  {archiveStatus ? <p className="archive-status" role="status">{archiveStatus}</p> : null}
+                </div>
+
+                <div className="admin-sidebar-account">
+                  <span className="admin-sidebar-label">Account</span>
+                  <button type="button" onClick={() => {
+                    setSidebarOpen(false)
+                    setPasswordDialogOpen(true)
+                    setPasswordError('')
+                    setPasswordStatus('')
+                  }}>
+                    <KeyRound size={18} /> Change password
+                  </button>
+                  <button className="admin-menu-logout" type="button" onClick={handleLogout}>
+                    <LogOut size={18} /> Sign out
+                  </button>
+                </div>
+              </aside>
+            </div>
+          ) : null}
+          {deleteDialogOpen ? (
+            <div className="admin-password-backdrop" role="presentation" onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setDeleteDialogOpen(false)
+            }}>
+              <section className="admin-password-dialog admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-delete-title">
+                <div className="admin-password-heading">
+                  <div>
+                    <span className="admin-delete-icon"><AlertTriangle size={21} /></span>
+                    <p className="eyebrow">Irreversible action</p>
+                    <h2 id="admin-delete-title">Delete clinic data?</h2>
+                  </div>
+                  <button type="button" className="admin-dialog-close" aria-label="Close dialog" onClick={() => setDeleteDialogOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </div>
+                <p className="admin-delete-copy">This permanently deletes all appointments, reviews, review requests, and reserved slots. Export anything you need before continuing.</p>
+                <label className="admin-delete-confirm-label">
+                  Type <strong>DELETE</strong> to confirm
+                  <input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" />
+                </label>
+                <div className="admin-password-actions">
+                  <button className="secondary-button" type="button" onClick={() => setDeleteDialogOpen(false)}>Cancel</button>
+                  <button className="danger-button" type="button" disabled={deleteConfirmation !== 'DELETE' || deletingData} onClick={deleteAllData}>
+                    <Trash2 size={17} /> {deletingData ? 'Deleting…' : 'Permanently delete'}
+                  </button>
+                </div>
+              </section>
+            </div>
+          ) : null}
+          {passwordDialogOpen ? (
+            <div className="admin-password-backdrop" role="presentation" onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setPasswordDialogOpen(false)
+            }}>
+              <section className="admin-password-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-password-title">
+                <div className="admin-password-heading">
+                  <div>
+                    <p className="eyebrow">Account security</p>
+                    <h2 id="admin-password-title">Change password</h2>
+                  </div>
+                  <button type="button" className="admin-dialog-close" aria-label="Close dialog" onClick={() => setPasswordDialogOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </div>
+                <p className="admin-password-account">{auth?.currentUser?.email}</p>
+                <form className="admin-password-form" onSubmit={handlePasswordChange}>
+                  <label>
+                    Current password
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={passwordForm.current}
+                      onChange={(event) => setPasswordForm((form) => ({ ...form, current: event.target.value }))}
+                      required
+                    />
+                  </label>
+                  <label>
+                    New password
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      minLength="6"
+                      value={passwordForm.next}
+                      onChange={(event) => setPasswordForm((form) => ({ ...form, next: event.target.value }))}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Confirm new password
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      minLength="6"
+                      value={passwordForm.confirm}
+                      onChange={(event) => setPasswordForm((form) => ({ ...form, confirm: event.target.value }))}
+                      required
+                    />
+                  </label>
+                  {passwordError ? <p className="form-error" role="alert">{passwordError}</p> : null}
+                  {passwordStatus ? <p className="form-success" role="status">{passwordStatus}</p> : null}
+                  <div className="admin-password-actions">
+                    <button className="secondary-button" type="button" onClick={() => setPasswordDialogOpen(false)}>Cancel</button>
+                    <button className="primary-button" type="submit" disabled={passwordSaving}>
+                      {passwordSaving ? 'Updating…' : 'Update password'}
+                    </button>
+                  </div>
+                </form>
+              </section>
+            </div>
+          ) : null}
         </div>
       </header>
 
-      <section className="admin-stats">
+      <section className="admin-stats" aria-label="Appointment status overview">
         {counts.map(([status, count]) => (
           <article key={status}>
             <span>{status}</span>
@@ -229,20 +475,7 @@ export default function AdminDashboard() {
         ))}
       </section>
 
-      <section className="admin-archive-panel">
-        <div>
-          <p className="eyebrow">Monthly archive</p>
-          <h2>Export clinic data</h2>
-          <p>Downloads complete appointments and reviews as separate CSV files that open in Excel.</p>
-        </div>
-        <div className="admin-actions">
-          <button className="secondary-button" type="button" onClick={exportAllData}>Export Excel files</button>
-          <button className="danger-button" type="button" onClick={deleteAllData}>Delete archived data</button>
-        </div>
-        {archiveStatus ? <p className="archive-status">{archiveStatus}</p> : null}
-      </section>
-
-      <section className="admin-table-wrap">
+      <section className="admin-table-wrap" id="admin-appointments">
         <div className="table-heading">
           <CalendarDays size={22} />
           <h2>Latest appointments</h2>
@@ -274,8 +507,8 @@ export default function AdminDashboard() {
                     </td>
                     <td>{item.phone}</td>
                     <td>{item.date || item.preferredDate || 'Flexible'}</td>
-                    <td>{item.startTime || item.preferredTime || 'Flexible'}</td>
-                    <td>{item.consultationClient || 'WhatsApp'}</td>
+                    <td>{item.preferredTime ? `${item.preferredTime} IST` : item.startTime || 'Flexible'}</td>
+                    <td>{item.consultationClient || 'To be confirmed'}</td>
                     <td><span className={`status-pill ${item.status}`}>{item.status}</span></td>
                     <td><span className={`status-pill review-${item.reviewStatus || 'not_requested'}`}>{getReviewStatusLabel(item.reviewStatus || 'not_requested')}</span></td>
                     <td>
@@ -293,7 +526,7 @@ export default function AdminDashboard() {
                         {item.status === 'confirmed' ? (
                           <>
                             <a
-                              href={generateConsultationWhatsAppLink(item.phone, item.patientName, item.date || item.preferredDate, item.startTime || item.preferredTime, item.endTime || getEndTime(item.startTime || item.preferredTime), item.message) || '#'}
+                              href={generateConsultationWhatsAppLink(item.phone, item.patientName, item.date || item.preferredDate, item.preferredTime || item.startTime, item.message) || '#'}
                               target="_blank"
                               rel="noreferrer"
                               className="admin-link-button admin-whatsapp-review"
@@ -303,7 +536,7 @@ export default function AdminDashboard() {
                             </a>
                             {item.email ? (
                               <a
-                                href={`mailto:${item.email}?subject=${encodeURIComponent(generateConsultationEmailBody(item.patientName, item.date || item.preferredDate, item.startTime || item.preferredTime, item.endTime || getEndTime(item.startTime || item.preferredTime), item.message).subject)}&body=${encodeURIComponent(generateConsultationEmailBody(item.patientName, item.date || item.preferredDate, item.startTime || item.preferredTime, item.endTime || getEndTime(item.startTime || item.preferredTime), item.message).body)}`}
+                                href={`mailto:${item.email}?subject=${encodeURIComponent(generateConsultationEmailBody(item.patientName, item.date || item.preferredDate, item.preferredTime || item.startTime, item.message).subject)}&body=${encodeURIComponent(generateConsultationEmailBody(item.patientName, item.date || item.preferredDate, item.preferredTime || item.startTime, item.message).body)}`}
                                 className="admin-link-button admin-email-review"
                               >
                                 <Mail size={16} />
@@ -350,7 +583,7 @@ export default function AdminDashboard() {
         ) : null}
       </section>
 
-      <section className="admin-table-wrap admin-reviews-wrap">
+      <section className="admin-table-wrap admin-reviews-wrap" id="admin-reviews">
         <div className="table-heading">
           <Star size={22} />
           <h2>Patient reviews</h2>

@@ -31,7 +31,7 @@ Thank you.`
   return `https://wa.me/${safePhone}?text=${encodeURIComponent(message)}`
 }
 
-export function generateConsultationWhatsAppLink(patientPhone, patientName, date, startTime, endTime, problemDescription = '') {
+export function generateConsultationWhatsAppLink(patientPhone, patientName, date, preferredTime, problemDescription = '') {
   const safePhone = normalizePhoneForWhatsApp(patientPhone)
   if (!safePhone) return null
 
@@ -39,21 +39,20 @@ export function generateConsultationWhatsAppLink(patientPhone, patientName, date
 
 Your consultation with ${doctor.name} is confirmed.
 Date: ${date}
-Time: ${startTime} - ${endTime}
-Duration: 30 minutes
+Preferred time: ${preferredTime} IST
 Problem description: ${problemDescription || 'Not provided'}
 
-At the scheduled time, please open this WhatsApp chat and tap the video call icon. Please use a stable internet connection and join from a quiet, well-lit place.
+Please contact the clinic if you need further information.
 
 Thank you.`
 
   return `https://wa.me/${safePhone}?text=${encodeURIComponent(message)}`
 }
 
-export function generateConsultationEmailBody(patientName, date, startTime, endTime, problemDescription = '') {
+export function generateConsultationEmailBody(patientName, date, preferredTime, problemDescription = '') {
   return {
     subject: `Consultation confirmed with Dr. ${doctor.name}`,
-    body: `Hello ${patientName},\n\nYour consultation with ${doctor.name} is confirmed.\nDate: ${date}\nTime: ${startTime} - ${endTime}\nDuration: 30 minutes\nProblem description: ${problemDescription || 'Not provided'}\n\nAt the scheduled time, please open this WhatsApp chat and tap the video call icon. Please use a stable internet connection and join from a quiet, well-lit place.\n\nThank you.`,
+    body: `Hello ${patientName},\n\nYour consultation with ${doctor.name} is confirmed.\nDate: ${date}\nPreferred time: ${preferredTime} IST\nProblem description: ${problemDescription || 'Not provided'}\n\nPlease contact the clinic if you need further information.\n\nThank you.`,
   }
 }
 

@@ -6,8 +6,8 @@ import {
   limit,
   orderBy,
   query,
-  runTransaction,
   serverTimestamp,
+  setDoc,
   startAfter,
   writeBatch,
 } from 'firebase/firestore'
@@ -23,33 +23,19 @@ function requireFirebase() {
 
 export async function createAppointment(form) {
   requireFirebase()
-  const slotRef = doc(db, 'consultationSlots', `${form.date}_${form.slotId.replace(':', '-')}`)
   const appointmentRef = doc(collection(db, APPOINTMENTS))
-  await runTransaction(db, async (transaction) => {
-    const slotSnap = await transaction.get(slotRef)
-    if (slotSnap.exists()) throw new Error('That consultation slot is no longer available. Please choose another time.')
-
-    const [hours, minutes] = form.slotId.split(':').map(Number)
-    const endMinutes = hours * 60 + minutes + 30
-    const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`
-    transaction.set(appointmentRef, {
-      patientName: form.patientName.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-      message: form.message.trim(),
-      date: form.date,
-      slotId: form.slotId,
-      startTime: form.slotId,
-      endTime,
-      durationMinutes: 30,
-      status: 'requested',
-      consultationClient: 'WhatsApp',
-      reviewStatus: 'not_requested',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-    transaction.set(slotRef, { appointmentId: appointmentRef.id, date: form.date, slotId: form.slotId, createdAt: serverTimestamp() })
-    transaction.set(doc(db, 'reviewRequests', appointmentRef.id), { appointmentId: appointmentRef.id, patientName: form.patientName.trim(), status: 'active', createdAt: serverTimestamp() })
+  await setDoc(appointmentRef, {
+    patientName: form.patientName.trim(),
+    phone: form.phone.trim(),
+    email: form.email.trim(),
+    message: form.message.trim(),
+    date: form.date,
+    preferredTime: form.preferredTime,
+    timezone: 'Asia/Kolkata',
+    status: 'requested',
+    reviewStatus: 'not_requested',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   })
   return appointmentRef
 }
@@ -100,4 +86,3 @@ export async function updateAppointmentStatus(id, status) {
   }
   return batch.commit()
 }
-
