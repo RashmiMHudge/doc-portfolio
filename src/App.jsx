@@ -1,7 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import {
   Award,
+  BookOpen,
   CalendarCheck,
   HeartPulse,
   Mail,
@@ -171,6 +172,90 @@ const educationTopics = [
       'Suitability depends on your diagnosis and treatment plan.',
     ],
     nextStep: 'Discuss your priorities with your cancer team before treatment; never delay treatment without medical advice.',
+  },
+  {
+    number: '07',
+    category: 'Nutrition myth',
+    title: 'Can cutting out sugar starve cancer?',
+    image: '/images/education/sugar-and-cancer.svg',
+    imageAlt: 'Illustration of a balanced meal with fruit and whole foods',
+    summary: 'Cancer cells use glucose for energy, but healthy cells do too. There is no good evidence that eliminating sugar makes a tumour shrink or stops cancer from growing.',
+    points: [
+      'Choose balanced meals with vegetables, fruit, protein and whole grains as tolerated.',
+      'Limit sugary drinks and excess added sugar for general health, but do not fear fruit.',
+      'During treatment or recovery, getting enough calories and protein may be especially important.',
+    ],
+    nextStep: 'Avoid restrictive diets and discuss major diet changes with your cancer care team.',
+  },
+  {
+    number: '08',
+    category: 'Treatment support',
+    title: 'Gentle movement may help with treatment fatigue',
+    image: '/images/education/movement-and-fatigue.svg',
+    imageAlt: 'Illustration of a patient taking a gentle walk outdoors',
+    summary: 'For many people, gentle movement during cancer treatment may help with fatigue. Start small and move only when your cancer team says it is safe for you.',
+    points: [
+      'Try a short indoor walk, easy stretches or a few minutes of comfortable movement.',
+      'Rest when you need to and build up gradually; there is no step target to meet.',
+      'Ask your team first if you have fever, dizziness, unusual breathlessness, severe anaemia, balance problems or recent surgery.',
+    ],
+    nextStep: 'Movement is not a test of strength—ask your care team what feels safe for you.',
+  },
+  {
+    number: '09',
+    category: 'Supportive care',
+    title: 'Palliative care is not giving up',
+    image: '/images/education/palliative-care.svg',
+    imageAlt: 'Illustration of a clinician providing supportive care to a patient',
+    summary: 'Palliative care can help manage pain, nausea, anxiety and other symptoms during gynecological cancer care. It can be provided alongside treatments such as surgery, chemotherapy or radiation.',
+    points: [
+      'Support focuses on comfort and quality of life.',
+      'It can help with physical symptoms as well as emotional concerns.',
+      'It is not limited to end-of-life care.',
+    ],
+    nextStep: 'Ask your cancer team about palliative support early in your care.',
+  },
+  {
+    number: '10',
+    category: 'Cancer diagnosis',
+    title: 'Can a biopsy spread cancer?',
+    image: '/images/education/biopsy-and-cancer-spread.svg',
+    imageAlt: 'Illustration of a clinician examining a small tissue sample',
+    summary: 'A biopsy helps a pathologist diagnose cancer and guide treatment. Tumour cells can rarely spread along a needle path, but the right approach depends on the suspected cancer and situation.',
+    points: [
+      'Specialists choose the biopsy method and route to minimize risk.',
+      'For some suspicious ovarian or adnexal masses, a needle biopsy may be avoided because rupture or tumour spill can affect staging.',
+      'The safest plan depends on the suspected cancer and should be made by the treating specialist.',
+    ],
+    nextStep: 'Do not let fear delay diagnosis, and do not arrange a biopsy without specialist advice.',
+  },
+  {
+    number: '11',
+    category: 'Cancer science',
+    title: 'Why can ovarian cancer spread across the abdomen?',
+    image: '/images/education/ovarian-cancer-spread.svg',
+    imageAlt: 'Illustration showing cancer cells moving through abdominal fluid and attaching to the abdominal lining',
+    summary: 'Epithelial ovarian cancer cells can detach and travel in abdominal fluid, then settle on the peritoneum or omentum. This pattern is called transcoelomic spread.',
+    points: [
+      'Cells may form deposits at several sites in the abdomen.',
+      'Ovarian cancer can also spread through lymphatic channels or the bloodstream.',
+      'Understanding the spread pattern helps specialists plan assessment and treatment.',
+    ],
+    nextStep: 'Share this explainer as general education; each person’s diagnosis and treatment plan is individual.',
+  },
+  {
+    number: '12',
+    category: 'Managing symptoms',
+    title: 'Hot flashes after cancer treatment? You have options',
+    image: '/images/education/hot-flashes-after-treatment.svg',
+    imageAlt: 'Illustration of a woman cooling down with a hand fan',
+    summary: 'Surgery that removes the ovaries, chemotherapy and pelvic radiotherapy can sometimes cause early menopause and hot flashes.',
+    points: [
+      'Light layers and keeping cool may help with day-to-day comfort.',
+      'Relaxation and tracking possible triggers may be worth trying.',
+      'Ask your cancer team about treatment options that are safe for you.',
+    ],
+    nextStep: 'You do not have to suffer in silence—talk with your cancer team about symptoms.',
   },
 ]
 
@@ -506,6 +591,96 @@ function ExpertiseModal({ isOpen, onClose, condition, onBook }) {
   )
 }
 
+function EducationModal({ topic, onClose }) {
+  const dialogRef = useRef(null)
+  const closeButtonRef = useRef(null)
+
+  useEffect(() => {
+    if (!topic) return undefined
+
+    const previousFocus = document.activeElement
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose()
+
+      if (event.key === 'Tab') {
+        const focusableElements = dialogRef.current?.querySelectorAll(
+          'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )
+        if (!focusableElements?.length) return
+
+        const firstElement = focusableElements[0]
+        const lastElement = focusableElements[focusableElements.length - 1]
+
+        if (event.shiftKey && document.activeElement === firstElement) {
+          event.preventDefault()
+          lastElement.focus()
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault()
+          firstElement.focus()
+        }
+      }
+    }
+
+    document.body.classList.add('modal-open')
+    window.addEventListener('keydown', handleKeyDown)
+    closeButtonRef.current?.focus()
+
+    return () => {
+      document.body.classList.remove('modal-open')
+      window.removeEventListener('keydown', handleKeyDown)
+      previousFocus?.focus?.()
+    }
+  }, [topic, onClose])
+
+  if (!topic) return null
+
+  return (
+    <div className="modal-backdrop education-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section
+        ref={dialogRef}
+        className="expertise-modal education-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="education-modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="expertise-modal-header">
+          <div>
+            <p className="eyebrow expertise-modal-eyebrow">{topic.category} · GUIDE {topic.number}</p>
+            <h2 id="education-modal-title">{topic.title}</h2>
+          </div>
+          <button ref={closeButtonRef} className="modal-close" type="button" onClick={onClose} aria-label="Close guide">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="expertise-modal-body education-modal-body">
+          <div className="education-modal-intro">
+            <img src={topic.image} alt={topic.imageAlt} />
+            <p className="expertise-modal-summary">{topic.summary}</p>
+          </div>
+
+          <div className="expertise-modal-panel education-modal-points">
+            <h3>What to know</h3>
+            <ul>
+              {topic.points.map((point) => <li key={point}>{point}</li>)}
+            </ul>
+          </div>
+
+          <p className="expertise-modal-note education-modal-next-step">
+            <strong>Next step</strong>
+            {topic.nextStep}
+          </p>
+          <p className="education-modal-disclaimer">
+            For general education only. This guide is not a diagnosis or a substitute for personalized
+            medical advice from your healthcare team.
+          </p>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function Header({ onBook }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const sectionHref = (href) => (onBook ? href : `/${href}`)
@@ -580,7 +755,9 @@ function Home() {
   useScrollReveal()
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
   const [activeCondition, setActiveCondition] = useState(null)
+  const [activeEducationTopic, setActiveEducationTopic] = useState(null)
   const [reviews, setReviews] = useState([])
+  const closeEducationTopic = useCallback(() => setActiveEducationTopic(null), [])
 
   // oxlint-disable-next-line react(set-state-in-effect)
   useEffect(() => {
@@ -775,23 +952,27 @@ function Home() {
           <div className="education-grid">
             {educationTopics.map((topic) => (
               <article className="education-card" key={topic.number}>
-                <img
-                  className="education-card-image"
-                  src={topic.image}
-                  alt={topic.imageAlt}
-                  loading="lazy"
-                />
-                <div className="education-card-meta">
-                  <span className="education-card-icon"><HeartPulse size={18} /></span>
-                  <span>{topic.category}</span>
-                  <span className="education-card-number">{topic.number}</span>
-                </div>
-                <h3>{topic.title}</h3>
-                <p className="education-card-summary">{topic.summary}</p>
-                <ul>
-                  {topic.points.map((point) => <li key={point}>{point}</li>)}
-                </ul>
-                <p className="education-next-step"><strong>Keep in mind</strong>{topic.nextStep}</p>
+                <button
+                  className="education-card-trigger"
+                  type="button"
+                  onClick={() => setActiveEducationTopic(topic)}
+                  aria-label={`Read guide: ${topic.title}`}
+                >
+                  <img
+                    className="education-card-image"
+                    src={topic.image}
+                    alt=""
+                    loading="lazy"
+                  />
+                  <div className="education-card-meta">
+                    <span className="education-card-icon"><HeartPulse size={18} /></span>
+                    <span>{topic.category}</span>
+                    <span className="education-card-number">{topic.number}</span>
+                  </div>
+                  <h3>{topic.title}</h3>
+                  <p className="education-card-summary">{topic.summary}</p>
+                  <span className="education-card-action"><BookOpen size={16} /> Read the guide</span>
+                </button>
               </article>
             ))}
           </div>
@@ -964,6 +1145,10 @@ function Home() {
         onClose={() => setActiveCondition(null)}
         onBook={() => setIsConsultationOpen(true)}
       />
+      <EducationModal
+        topic={activeEducationTopic}
+        onClose={closeEducationTopic}
+      />
       <ConsultationModal
         isOpen={isConsultationOpen}
         onClose={() => setIsConsultationOpen(false)}
@@ -1019,7 +1204,7 @@ function Footer() {
         <a className="footer-contact-link" href={`tel:${doctor.phone}`}><Phone size={16} />{doctor.displayPhone}</a>
         <a className="footer-contact-link" href={whatsappUrl} target="_blank" rel="noreferrer"><Stethoscope size={16} />WhatsApp</a>
         <a className="footer-contact-link" href={`mailto:${doctor.email}`}><Mail size={16} />{doctor.email}</a>
-        <a className="footer-contact-link" href="https://www.instagram.com/gyn_cancer_doc/" target="_blank" rel="noopener noreferrer"><InstagramMark size={16} />Follow on Instagram</a>
+        <a className="footer-contact-link" href="https://www.instagram.com/gyn_cancer_doc/" target="_blank" rel="noopener noreferrer"><InstagramMark size={16} />Instagram</a>
       </div>
 
       <div className="footer-note">
