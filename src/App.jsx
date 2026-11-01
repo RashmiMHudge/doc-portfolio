@@ -3,6 +3,7 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import {
   Award,
   CalendarCheck,
+  HeartPulse,
   Mail,
   Microscope,
   Phone,
@@ -26,7 +27,7 @@ const ReviewPage = lazy(() => import('./pages/ReviewPage.jsx'))
 function useScrollReveal() {
   useEffect(() => {
     const elements = document.querySelectorAll(
-      '.hero-copy, .hero-media, .stats-band, .section-heading, .split-section > div, .list-card, .service-card, .quote-panel, .care-grid article, .testimonial-card, .faq-list details, .contact-copy, .appointment-form',
+      '.hero-copy, .hero-media, .stats-band, .section-heading, .split-section > div, .list-card, .service-card, .quote-panel, .care-grid article, .testimonial-card, .faq-list details, .contact-copy, .appointment-form, .education-card',
     )
 
     elements.forEach((element) => element.classList.add('reveal-item'))
@@ -51,6 +52,7 @@ function useScrollReveal() {
 
 const navItems = [
   ['About', '#about'],
+  ['Health Education', '#health-education'],
   ['Skills', '#skills'],
   ['Area of Expertise', '#area-of-expertise'],
   ['Care', '#care'],
@@ -58,11 +60,118 @@ const navItems = [
   ['Contact', '#contact'],
 ]
 
+function InstagramMark({ size = 18 }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.75" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 const stats = [
   ['12+', 'Years clinical experience'],
   ['4+', 'Years oncology focus'],
   ['AIR 80', 'Super speciality rank'],
   ['7+', 'Research publications'],
+]
+
+const educationTopics = [
+  {
+    number: '01',
+    category: 'Know the signs',
+    title: 'Five gynecological cancers',
+    image: '/images/education/gynecological-cancer-signs.svg',
+    imageAlt: 'Illustration of the uterus with highlighted gynecological health areas',
+    summary: 'Cervical, ovarian, uterine, vulval and vaginal cancers can have different warning signs. Persistent or unusual symptoms deserve attention.',
+    points: [
+      'Notice unexpected bleeding or persistent discharge.',
+      'Pay attention to ongoing bloating or pelvic discomfort.',
+      'Seek advice for persistent vulval itching, sores or skin changes.',
+    ],
+    nextStep: 'Cervical screening does not screen for every gynecological cancer.',
+  },
+  {
+    number: '02',
+    category: 'Ovarian health',
+    title: 'An ovarian cyst is not automatically cancer',
+    image: '/images/education/ovarian-cyst-awareness.svg',
+    imageAlt: 'Illustration showing a small fluid-filled ovarian cyst beside a healthy ovary',
+    summary: 'Many ovarian cysts are benign and may resolve without treatment. The right next step depends on ultrasound findings, symptoms, age and menopausal status.',
+    points: [
+      'Not every cyst needs surgery.',
+      'Your clinician can explain whether monitoring or further assessment is appropriate.',
+      'Sudden, severe pelvic pain needs urgent medical care.',
+    ],
+    nextStep: 'Have persistent symptoms or an ultrasound finding assessed.',
+  },
+  {
+    number: '03',
+    category: 'When to seek care',
+    title: 'Bleeding after menopause',
+    image: '/images/education/bleeding-after-menopause.svg',
+    imageAlt: 'Illustration of a calendar and a care conversation about postmenopausal bleeding',
+    summary: 'Menopause is generally reached after 12 months without a period. Any bleeding after menopause—even one episode of spotting—should be discussed with a clinician.',
+    points: [
+      'Many causes are not cancer and can be treated.',
+      'Bleeding can sometimes signal a problem with the womb lining.',
+      'Assessment may include an ultrasound or biopsy, depending on your situation.',
+    ],
+    nextStep: 'Arrange a gynaecology appointment rather than waiting for another episode.',
+  },
+  {
+    number: '04',
+    category: 'Family history',
+    title: 'Cancer risk can come from either side',
+    image: '/images/education/family-history.svg',
+    imageAlt: 'Illustration of a family tree connecting relatives on both sides of a family',
+    summary: 'A family history of ovarian cancer, breast cancer at a young age, or a known inherited gene change on either your mother’s or father’s side may be worth discussing.',
+    points: [
+      'Write down which relatives had cancer and their ages at diagnosis.',
+      'Your clinician can advise whether genetic counselling is appropriate.',
+      'CA-125 and pelvic ultrasound are not reliable routine ovarian cancer screening tests.',
+    ],
+    nextStep: 'Share your family history with your doctor; testing is not right for everyone.',
+  },
+  {
+    number: '05',
+    category: 'Cervical health',
+    title: 'A positive HPV test is not a cancer diagnosis',
+    image: '/images/education/hpv-positive.svg',
+    imageAlt: 'Illustration of HPV particles and a clinician discussing a screening result',
+    summary: 'HPV is common, and many infections clear naturally. A positive result means you should follow the care plan recommended for your test and circumstances.',
+    points: [
+      'Keep your result and discuss it with your gynaecologist.',
+      'Follow recommended repeat testing or examination.',
+      'A test cannot tell when HPV was acquired or from whom.',
+    ],
+    nextStep: 'Don’t panic or skip follow-up—ask your clinician what your result means.',
+  },
+  {
+    number: '06',
+    category: 'Treatment & fertility',
+    title: 'Ask about fertility before treatment starts',
+    image: '/images/education/fertility-preservation.svg',
+    imageAlt: 'Illustration of a patient discussing fertility-preservation options with a clinician',
+    summary: 'Some cancer treatments can affect fertility. Depending on the cancer and treatment plan, fertility-preservation options may be available.',
+    points: [
+      'Ask your cancer team about fertility as early as possible.',
+      'Options may include egg or embryo freezing or fertility-sparing treatment for selected patients.',
+      'Suitability depends on your diagnosis and treatment plan.',
+    ],
+    nextStep: 'Discuss your priorities with your cancer team before treatment; never delay treatment without medical advice.',
+  },
 ]
 
 const skillGroups = [
@@ -653,6 +762,47 @@ function Home() {
           </div>
         </section>
 
+        <section className="section education-section" id="health-education">
+          <div className="education-heading">
+            <p className="eyebrow">WOMEN&apos;S HEALTH EDUCATION</p>
+            <h2>Clear information.<br /><em>Confident next steps.</em></h2>
+            <p>
+              Explore approachable guides to gynecological cancer awareness, symptoms, screening
+              and treatment conversations—created to help you know what to ask and when to seek care.
+            </p>
+          </div>
+
+          <div className="education-grid">
+            {educationTopics.map((topic) => (
+              <article className="education-card" key={topic.number}>
+                <img
+                  className="education-card-image"
+                  src={topic.image}
+                  alt={topic.imageAlt}
+                  loading="lazy"
+                />
+                <div className="education-card-meta">
+                  <span className="education-card-icon"><HeartPulse size={18} /></span>
+                  <span>{topic.category}</span>
+                  <span className="education-card-number">{topic.number}</span>
+                </div>
+                <h3>{topic.title}</h3>
+                <p className="education-card-summary">{topic.summary}</p>
+                <ul>
+                  {topic.points.map((point) => <li key={point}>{point}</li>)}
+                </ul>
+                <p className="education-next-step"><strong>Keep in mind</strong>{topic.nextStep}</p>
+              </article>
+            ))}
+          </div>
+
+          <p className="education-disclaimer">
+            This information is for general education only and cannot replace a consultation or
+            personalized medical advice. If symptoms are persistent, unusual or severe, contact a
+            qualified healthcare professional.
+          </p>
+        </section>
+
         <section className="section skills-section" id="skills">
           <div className="skills-header">
             <p className="eyebrow">CLINICAL SKILLS</p>
@@ -869,6 +1019,7 @@ function Footer() {
         <a className="footer-contact-link" href={`tel:${doctor.phone}`}><Phone size={16} />{doctor.displayPhone}</a>
         <a className="footer-contact-link" href={whatsappUrl} target="_blank" rel="noreferrer"><Stethoscope size={16} />WhatsApp</a>
         <a className="footer-contact-link" href={`mailto:${doctor.email}`}><Mail size={16} />{doctor.email}</a>
+        <a className="footer-contact-link" href="https://www.instagram.com/gyn_cancer_doc/" target="_blank" rel="noopener noreferrer"><InstagramMark size={16} />Follow on Instagram</a>
       </div>
 
       <div className="footer-note">
